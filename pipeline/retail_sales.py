@@ -243,11 +243,10 @@ Examples:
                 | "Read CSV" >> beam.io.ReadFromText(args.input)
                 | "Transform" >> beam.ParDo(TransformData())
                 | "Write to BQ" >> beam.io.WriteToBigQuery(
-                    args.output,
+                    table=args.output,
                     write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
                     create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
-                    # Use streaming inserts for better performance on smaller batches
-                    # For large batches, consider batch loads via load jobs
+                    method=beam.io.WriteToBigQuery.Method.STREAMING_INSERTS,
                 )
             )
             
