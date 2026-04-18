@@ -1,2 +1,9 @@
+# Python Dependencies for Retail Sales Batch Pipeline
+
+# Apache Beam with GCP support for distributed data processing
+# Includes Dataflow, BigQuery, and Cloud Storage connectors
 apache-beam[gcp]==2.54.0
+
+# Google Cloud BigQuery client library for BigQuery operations
+# Used for writing data to BigQuery tables
 google-cloud-bigquery
