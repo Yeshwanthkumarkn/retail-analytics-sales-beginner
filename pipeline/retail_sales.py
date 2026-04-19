@@ -222,10 +222,26 @@ Examples:
     # Parse arguments - remaining unknown args passed to beam
     args, pipeline_args = parser.parse_known_args(argv)
     
-    # Log pipeline configuration
+    # Parse BigQuery table reference from output string
+    # Expected format: PROJECT:DATASET.TABLE or DATASET.TABLE
+    table_ref = args.output
+    if ':' in table_ref:
+        project_id, dataset_and_table = table_ref.split(':', 1)
+    else:
+        # If no project specified, try to get from pipeline options
+        project_id = None
+        dataset_and_table = table_ref
+    
+    if '.' in dataset_and_table:
+        dataset_id, table_id = dataset_and_table.split('.', 1)
+    else:
+        raise ValueError(f"Invalid table reference format: {args.output}. Expected PROJECT:DATASET.TABLE or DATASET.TABLE")
+    
     logger.info(f"Pipeline Configuration:")
     logger.info(f"  Input: {args.input}")
-    logger.info(f"  Output: {args.output}")
+    logger.info(f"  Output Project: {project_id}")
+    logger.info(f"  Output Dataset: {dataset_id}")
+    logger.info(f"  Output Table: {table_id}")
     logger.info(f"  Pipeline args: {' '.join(pipeline_args)}")
     
     # Initialize Beam pipeline options
@@ -237,17 +253,25 @@ Examples:
             
             logger.info("Starting pipeline execution...")
             
+            # Build WriteToBigQuery parameters
+            bq_write_params = {
+                'dataset_id': dataset_id,
+                'table_id': table_id,
+                'write_disposition': beam.io.BigQueryDisposition.WRITE_APPEND,
+                'create_disposition': beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
+                'method': beam.io.WriteToBigQuery.Method.STREAMING_INSERTS,
+            }
+            
+            # Add project_id if specified
+            if project_id:
+                bq_write_params['project_id'] = project_id
+            
             # Define the pipeline stages
             (
                 p
                 | "Read CSV" >> beam.io.ReadFromText(args.input)
                 | "Transform" >> beam.ParDo(TransformData())
-                | "Write to BQ" >> beam.io.WriteToBigQuery(
-                    table=args.output,
-                    write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
-                    create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
-                    method=beam.io.WriteToBigQuery.Method.STREAMING_INSERTS,
-                )
+                | "Write to BQ" >> beam.io.WriteToBigQuery(**bq_write_params)
             )
             
         logger.info("Pipeline execution completed successfully!")
