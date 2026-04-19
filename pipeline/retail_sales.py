@@ -244,8 +244,14 @@ Examples:
                 | "Transform" >> beam.ParDo(TransformData())
                 | "Write to BQ" >> beam.io.WriteToBigQuery(
                     table=lambda _: args.output,
-                    write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
+                    dataset=None,  # Table reference includes entire PROJECT:DATASET.TABLE format
+                    project=None,  # Project specified in table reference
+                    schema='order_id:STRING,product_id:STRING,category:STRING,'
+                           'price:FLOAT64,quantity:INT64,order_date:STRING,'
+                           'revenue:FLOAT64,load_date:STRING',
                     create_disposition=beam.io.BigQueryDisposition.CREATE_IF_NEEDED,
+                    write_disposition=beam.io.BigQueryDisposition.WRITE_APPEND,
+                    method=beam.io.WriteToBigQuery.Method.FILE_LOADS,  # Batch pipeline optimization
                 )
             )
             
